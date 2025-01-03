@@ -1,5 +1,5 @@
-export interface LineProfile {
-  userId: string;
+export interface UserProfile {
+  userLineId: string;
   displayName: string;
   pictureUrl?: string;
   statusMessage?: string;
@@ -16,5 +16,11 @@ export interface LineTokenResponse {
 
 export interface LineLoginState {
   isLineLoggedIn: boolean;
-  lineProfile: LineProfile | null;
+  lineProfile: UserProfile | null;
+}
+
+export interface VerifyResponse {
+  success: boolean;
+  message: string;
+  user?: UserProfile;
 }

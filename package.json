@@ -10,14 +10,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@line/liff": "^2.25.1",
+    "axios": "^1.7.9",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-toastify": "^11.0.0"
+    "react-toastify": "^11.0.2"
   },
   "devDependencies": {
-    
     "@eslint/js": "^9.9.0",
-    "@reown/appkit": "1.6.0",
+    "@reown/appkit": "^1.6.3",
     "@reown/appkit-adapter-ethers": "1.6.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
@@ -25,7 +26,7 @@
     "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",
-    "ethers": "^6.13.3",
+    "ethers": "^6.13.4",
     "globals": "^15.9.0",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",

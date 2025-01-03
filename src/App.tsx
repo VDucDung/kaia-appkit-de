@@ -12,7 +12,12 @@ import { useEffect, useState, useCallback } from "react";
 import "react-toastify/dist/ReactToastify.css";
 import { useTokenFunctions } from "./hooks/contractHook/useTokenContract";
 import { formatAddress } from "./utils";
-import { LineProfile, LineTokenResponse } from "./types/line";
+import { UserProfile, VerifyResponse } from "./types/line";
+import axios from 'axios';
+import liff from '@line/liff';
+
+const VERIFY_API_URL = import.meta.env.VITE_VERIFY_API_URL as string;
+const LIFF_ID = import.meta.env.VITE_LIFF_ID as string;
 
 const App: React.FC = () => {
   const { open } = useAppKit();
@@ -20,69 +25,80 @@ const App: React.FC = () => {
   const [bal, setBal] = useState<string>("0");
   const { walletProvider } = useAppKitProvider("eip155");
   const { chainId } = useAppKitNetwork();
-  const [lineProfile, setLineProfile] = useState<LineProfile | null>(null);
-  const [isLineLoggedIn, setIsLineLoggedIn] = useState<boolean>(false);
+  const [lineProfile, setLineProfile] = useState<UserProfile | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
-  const LINE_CLIENT_ID: string = import.meta.env.VITE_LINE_CLIENT_ID;
-  const LINE_REDIRECT_URI: string = import.meta.env.VITE_LINE_REDIRECT_URI;
-  const LINE_SCOPE: string = 'profile openid email';
-
-  const handleLineLogin = (): void => {
-    const lineAuthUrl: string = `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${LINE_CLIENT_ID}&redirect_uri=${encodeURIComponent(LINE_REDIRECT_URI)}&state=line&scope=${encodeURIComponent(LINE_SCOPE)}`;
-    window.location.href = lineAuthUrl;
-  };
-
-  const handleLineCallback = async (code: string): Promise<void> => {
+  const verifyToken = useCallback(async (accessToken: string): Promise<UserProfile> => {
     try {
-      const response = await fetch('/api/line/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ code }),
-      });
+      const response = await axios.post<VerifyResponse>(
+        VERIFY_API_URL,
+        { access_token: accessToken }
+      );
 
-      const data: LineTokenResponse = await response.json();
-      
-      if (data.access_token) {
-        const profileResponse = await fetch('https://api.line.me/v2/profile', {
-          headers: {
-            Authorization: `Bearer ${data.access_token}`,
-          },
-        });
-        
-        const profile: LineProfile = await profileResponse.json();
-        setLineProfile(profile);
-        setIsLineLoggedIn(true);
-        localStorage.setItem('lineProfile', JSON.stringify(profile));
+      if (!response.data.success || !response.data.user) {
+        throw new Error(response.data.message || 'Verification failed');
       }
+
+      console.log('Verification successful:', response.data);
+      return response.data.user;
+    } catch (error) {
+      const errorMessage = axios.isAxiosError(error)
+        ? error.response?.data?.message || error.message
+        : 'Verification error';
+      throw new Error(errorMessage);
+    }
+  }, []);
+
+  const fetchUserProfile = useCallback(async (): Promise<void> => {
+    try {
+        const accessToken = liff.getAccessToken();
+        if (!accessToken) {
+          throw new Error('Access token not found');
+        }
+  
+        console.log('access token:', accessToken);
+
+        const userProfile = await verifyToken(accessToken);
+        setLineProfile(userProfile);
+        setIsLoggedIn(true);
+        localStorage.setItem('lineProfile', JSON.stringify(userProfile));
     } catch (error) {
       console.error('Line login error:', error);
       toast.error('Failed to login with Line');
     }
-  };
+  }, [verifyToken]);
 
-  const handleLogout = (): void => {
-    setLineProfile(null);
-    setIsLineLoggedIn(false);
-    localStorage.removeItem('lineProfile');
-  };
+  const initializeLiff = useCallback(async (): Promise<void> => {
+    try {
+      await liff.init({ liffId: LIFF_ID });
+      if (liff.isLoggedIn()) {
+        setIsLoggedIn(true);
+        await fetchUserProfile();
+      }
+    } catch (err) {
+      console.log(`Error initializing LIFF: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }, [fetchUserProfile]);
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-    const savedProfile = localStorage.getItem('lineProfile');
-    
-    if (savedProfile) {
-      setLineProfile(JSON.parse(savedProfile));
-      setIsLineLoggedIn(true);
-    } else if (code) {
-      handleLineCallback(code);
+    void initializeLiff();
+  }, [initializeLiff]);
+
+  const login = useCallback((): void => {
+    if (!liff.isLoggedIn()) {
+      liff.login();
     }
   }, []);
 
+  const logout = useCallback((): void => {
+    if (liff.isLoggedIn()) {
+      liff.logout();
+      setIsLoggedIn(false);
+      setLineProfile(null);
+    }
+  }, []);
   const onSignMessage = async (): Promise<void> => {
-    if (!isLineLoggedIn) {
+    if (!isLoggedIn) {
       toast.error("Please login with Line first");
       return;
     }
@@ -105,7 +121,7 @@ const App: React.FC = () => {
   };
 
   const onSendKaia = async (): Promise<void> => {
-    if (!isLineLoggedIn) {
+    if (!isLoggedIn) {
       toast.error("Please login with Line first");
       return;
     }
@@ -173,9 +189,9 @@ const App: React.FC = () => {
       </div>
       
       <div className="flex">
-        {!isLineLoggedIn ? (
+        {!isLoggedIn ? (
           <button 
-            onClick={handleLineLogin} 
+            onClick={login} 
             className="line-login-btn"
             type="button"
           >
@@ -192,7 +208,7 @@ const App: React.FC = () => {
             )}
             <span>{lineProfile?.displayName}</span>
             <button 
-              onClick={handleLogout}
+              onClick={logout}
               className="logout-btn"
               type="button"
             >
@@ -202,7 +218,7 @@ const App: React.FC = () => {
         )}
       </div>
 
-      {isLineLoggedIn && (
+      {isLoggedIn && (
         <div className="flex">
           <button onClick={() => open()} type="button">
             {isConnected ? formatAddress(address ?? "") : "Connect Wallet"}
@@ -215,7 +231,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {isLineLoggedIn && isConnected && (
+      {isLoggedIn && isConnected && (
         <div className="flex mt">
           <p>Kaia Balance: {bal}</p>
           <button onClick={onSendKaia} type="button">
@@ -224,7 +240,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {isLineLoggedIn && isConnected && (
+      {isLoggedIn && isConnected && (
         <div className="flex mt">
           <div>
             {isLoading ? (
