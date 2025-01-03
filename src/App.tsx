@@ -12,6 +12,7 @@ import { useEffect, useState, useCallback } from "react";
 import "react-toastify/dist/ReactToastify.css";
 import { useTokenFunctions } from "./hooks/contractHook/useTokenContract.ts";
 import { formatAddress } from "./utils.ts";
+import liff from '@line/liff';
 
 function App() {
   const { open } = useAppKit();
@@ -19,6 +20,7 @@ function App() {
   const [bal, setBal] = useState<string | null>("0");
   const { walletProvider } = useAppKitProvider("eip155");
   const { chainId } = useAppKitNetwork();
+  const LIFF_ID = import.meta.env.VITE_LIFF_ID as string;
 
   const onSignMessage = async () => {
     if (!address) {
@@ -101,13 +103,21 @@ function App() {
     isTransferring,
   } = useTokenFunctions();
 
+  const handleConnect = async () => {
+    await liff.init({ liffId: LIFF_ID });
+
+    if (!liff.isLoggedIn()) {
+      return liff.login();
+    }
+    open()
+  }
   return (
     <>
       <div className="img">
         <img src="/kaia.png" className="logo" alt="" />
       </div>
       <div className="flex">
-        <button onClick={() => open()}>
+        <button onClick={handleConnect}>
           {isConnected ? formatAddress(address ?? "") : <>Connect Wallet</>}
         </button>
         {isConnected && <button onClick={onSignMessage}>Sign Message</button>}

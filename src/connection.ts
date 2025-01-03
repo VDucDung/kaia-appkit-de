@@ -20,12 +20,15 @@ export const kaiaTestNetwork: CaipNetwork = {
   },
 };
 
+// 1. Get projectId
 const projectId = import.meta.env.VITE_APPKIT_PROJECT_ID;
 
+// 2. Set the networks
 const networks: [CaipNetwork, ...CaipNetwork[]] = [
   kaiaTestNetwork,
 ];
 
+// 3. Create a metadata object - optional
 const metadata = {
   name: "Appkit-sample",
   description: "Appkit sample project",
@@ -33,6 +36,7 @@ const metadata = {
   icons: ["https://avatars.mywebsite.com/"],
 };
 
+// 4. Create a AppKit instance
 export const appkit = createAppKit({
   adapters: [new EthersAdapter()],
   networks,
