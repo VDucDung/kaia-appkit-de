@@ -22,6 +22,8 @@ function App() {
   const { chainId } = useAppKitNetwork();
   const { profile, isLoggedIn, login, logout } = useLINEAuth();
 
+  console.log(bal)
+
   const onSignMessage = async () => {
     if (!address) {
       toast.error("Please connect wallet");
@@ -108,69 +110,59 @@ function App() {
       <div className="img">
         <img src="/kaia.png" className="logo" alt="" />
       </div>
-      {!isLoggedIn && (
-        <div className="flex">
+      <div className="flex">
+        {!isLoggedIn && (
           <button onClick={login}>
             {isLoggedIn ? formatAddress(profile?.userLineId ?? "") : <>Login with LINE</>}
           </button>
-        </div>
-      )}
-      {isLoggedIn && (
-        <>
-          <div className="flex">
+        )}
+        {isLoggedIn && (
+          <>
             <button onClick={() => open()}>
               {isConnected ? formatAddress(address ?? "") : <>Connect Wallet</>}
             </button>
             {isConnected && <button onClick={onSignMessage}>Sign Message</button>}
-          </div>
-          <div className="flex mt">
-            {isConnected && <p>Kaia Balance: {bal}</p>}
             {isConnected && <button onClick={onSendKaia}>Send Kaia</button>}
-            {isLoggedIn && (
-              <button onClick={logout}>
-                Logout
-              </button>
+            <button onClick={logout}>
+              Logout
+            </button>
+          </>
+        )}
+      </div>
+      {isLoggedIn && isConnected && (
+        <div className="flex mt">
+          <div>
+            {isLoading ? (
+              <p>Loading...</p>
+            ) : (
+              <div>
+                <p>
+                  Token Balance:{" "}
+                  {tokenBalance != null
+                    ? Number(
+                        ethers.formatUnits(tokenBalance.toString(), 18)
+                      ).toLocaleString()
+                    : 0}
+                </p>
+                <p>Token Name: {tokenDetail?.name}</p>
+                <p>Token symbol: {tokenDetail?.symbol}</p>
+                <p>Token Decimal: {tokenDetail?.decimals}</p>
+              </div>
             )}
           </div>
-          <div className="flex mt">
-            <div>
-              {isConnected ? (
-                isLoading ? (
-                  <p>Loading...</p>
-                ) : (
-                  <div>
-                    <p>
-                      Token Balance:{" "}
-                      {tokenBalance != null
-                        ? Number(
-                            ethers.formatUnits(tokenBalance.toString(), 18)
-                          ).toLocaleString()
-                        : 0}
-                    </p>
-                    <p>Token Name: {tokenDetail?.name}</p>
-                    <p>Token symbol: {tokenDetail?.symbol}</p>
-                    <p>Token Decimal: {tokenDetail?.decimals}</p>
-                  </div>
-                )
-              ) : (
-                <p>Please connect your wallet to see token details.</p>
-              )}
-            </div>
-            <div className="flex-2">
-              {isConnected && (
-                <>
-                  {" "}
-                  <button onClick={() => mint()}>
-                    {isMinting ? "Minting" : "Mint Token"}
-                  </button>
-                  <button onClick={() => transfer()}>
-                    {isTransferring ? "Sending" : "Transfer"}
-                  </button>
-                </>
-              )}
-            </div>
+          <div className="flex-2">
+            {isMinting ? (
+              <p>Minting</p>
+            ) : (
+              <button onClick={() => mint()}>Mint Token</button>
+            )}
+            {isTransferring ? (
+              <p>Sending</p>
+            ) : (
+              <button onClick={() => transfer()}>Transfer</button>
+            )}
           </div>
-        </>
+        </div>
       )}
       <ToastContainer />
     </>
