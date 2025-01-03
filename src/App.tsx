@@ -23,8 +23,8 @@ const App: React.FC = () => {
   const [lineProfile, setLineProfile] = useState<LineProfile | null>(null);
   const [isLineLoggedIn, setIsLineLoggedIn] = useState<boolean>(false);
 
-  const LINE_CLIENT_ID: string = process.env.REACT_APP_LINE_CLIENT_ID || '';
-  const LINE_REDIRECT_URI: string = process.env.REACT_APP_LINE_REDIRECT_URI || '';
+  const LINE_CLIENT_ID: string = import.meta.env.VITE_LINE_CLIENT_ID;
+  const LINE_REDIRECT_URI: string = import.meta.env.VITE_LINE_REDIRECT_URI;
   const LINE_SCOPE: string = 'profile openid email';
 
   const handleLineLogin = (): void => {
