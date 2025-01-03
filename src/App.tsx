@@ -22,7 +22,7 @@ const LIFF_ID = import.meta.env.VITE_LIFF_ID as string;
 const App: React.FC = () => {
   const { open } = useAppKit();
   const { address, isConnected } = useAppKitAccount();
-  const [bal, setBal] = useState<string>("0");
+  const [bal, setBal] = useState<string | null>("0");
   const { walletProvider } = useAppKitProvider("eip155");
   const { chainId } = useAppKitNetwork();
   const [lineProfile, setLineProfile] = useState<UserProfile | null>(null);
@@ -98,11 +98,7 @@ const App: React.FC = () => {
     }
   }, []);
   const onSignMessage = async (): Promise<void> => {
-    if (!isLoggedIn) {
-      toast.error("Please login with Line first");
-      return;
-    }
-    if (!address) {
+      if (!address) {
       toast.error("Please connect wallet");
       return;
     }
@@ -121,6 +117,8 @@ const App: React.FC = () => {
   };
 
   const onSendKaia = async (): Promise<void> => {
+    console.log(chainId);
+
     if (!isLoggedIn) {
       toast.error("Please login with Line first");
       return;
@@ -154,23 +152,28 @@ const App: React.FC = () => {
     }
   };
 
-  const getKaiaBalance = useCallback(async (): Promise<void> => {
-    if (!address || chainId !== 1001) return;
-
+  const getKaiaBalance = useCallback(async () => {
+    if (!address) return;
+    if (chainId !== 1001) {
+      return;
+    }
     try {
       const provider = new BrowserProvider(walletProvider as Eip1193Provider);
+
       const balance = await provider.getBalance(address);
+
       const formattedBalance = ethers.formatEther(balance);
       setBal(formattedBalance);
+      console.log(`Balance of ${address}: ${formattedBalance} Kaia`);
     } catch (error) {
       console.error("Error fetching balance:", error);
-      setBal("0");
+      setBal(null);
     }
   }, [address, walletProvider, chainId]);
 
   useEffect(() => {
     getKaiaBalance();
-  }, [getKaiaBalance]);
+  }, [address, getKaiaBalance]);
 
   const {
     isLoading,
