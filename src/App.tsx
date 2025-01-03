@@ -12,7 +12,6 @@ import { useEffect, useState, useCallback } from "react";
 import "react-toastify/dist/ReactToastify.css";
 import { useTokenFunctions } from "./hooks/contractHook/useTokenContract.ts";
 import { formatAddress } from "./utils.ts";
-import { useLINEAuth } from "./hooks/useLINEAuth.ts";
 
 function App() {
   const { open } = useAppKit();
@@ -20,9 +19,6 @@ function App() {
   const [bal, setBal] = useState<string | null>("0");
   const { walletProvider } = useAppKitProvider("eip155");
   const { chainId } = useAppKitNetwork();
-  const { profile, isLoggedIn, login, logout } = useLINEAuth();
-
-  console.log(bal)
 
   const onSignMessage = async () => {
     if (!address) {
@@ -53,9 +49,9 @@ function App() {
     const provider = new BrowserProvider(walletProvider as Eip1193Provider);
     const signer = await provider.getSigner();
 
-    const to = "0x97bbeC5dadcA85AFBe331035f3F63d7a25fC7f75";
+    const to = "0x97bbeC5dadcA85AFBe331035f3F63d7a25fC7f75"; 
 
-    const amount = "1000000000000000000";
+    const amount = "1000000000000000000"; 
     try {
       const tx = await signer?.sendTransaction({
         to,
@@ -111,28 +107,19 @@ function App() {
         <img src="/kaia.png" className="logo" alt="" />
       </div>
       <div className="flex">
-        {!isLoggedIn && (
-          <button onClick={login}>
-            {isLoggedIn ? formatAddress(profile?.userLineId ?? "") : <>Login with LINE</>}
-          </button>
-        )}
-        {isLoggedIn && (
-          <>
-            <button onClick={() => open()}>
-              {isConnected ? formatAddress(address ?? "") : <>Connect Wallet</>}
-            </button>
-            {isConnected && <button onClick={onSignMessage}>Sign Message</button>}
-            {isConnected && <button onClick={onSendKaia}>Send Kaia</button>}
-            <button onClick={logout}>
-              Logout
-            </button>
-          </>
-        )}
+        <button onClick={() => open()}>
+          {isConnected ? formatAddress(address ?? "") : <>Connect Wallet</>}
+        </button>
+        {isConnected && <button onClick={onSignMessage}>Sign Message</button>}
       </div>
-      {isLoggedIn && isConnected && (
-        <div className="flex mt">
-          <div>
-            {isLoading ? (
+      <div className="flex mt">
+        {isConnected && <p>Kaia Balance: {bal}</p>}
+        {isConnected && <button onClick={onSendKaia}>Send Kaia</button>}
+      </div>
+      <div className="flex mt">
+        <div>
+          {isConnected ? (
+            isLoading ? (
               <p>Loading...</p>
             ) : (
               <div>
@@ -148,22 +135,25 @@ function App() {
                 <p>Token symbol: {tokenDetail?.symbol}</p>
                 <p>Token Decimal: {tokenDetail?.decimals}</p>
               </div>
-            )}
-          </div>
-          <div className="flex-2">
-            {isMinting ? (
-              <p>Minting</p>
-            ) : (
-              <button onClick={() => mint()}>Mint Token</button>
-            )}
-            {isTransferring ? (
-              <p>Sending</p>
-            ) : (
-              <button onClick={() => transfer()}>Transfer</button>
-            )}
-          </div>
+            )
+          ) : (
+            <p>Please connect your wallet to see token details.</p>
+          )}
         </div>
-      )}
+        <div className="flex-2">
+          {isConnected && (
+            <>
+              {" "}
+              <button onClick={() => mint()}>
+                {isMinting ? "Minting" : "Mint Token"}
+              </button>
+              <button onClick={() => transfer()}>
+                {isTransferring ? "Sending" : "Transfer"}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
       <ToastContainer />
     </>
   );

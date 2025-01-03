@@ -5,7 +5,6 @@ import { toast } from "react-toastify";
 import { ethers } from "ethers";
 import { formatAddress } from "../../utils";
 
-
 interface TokenDetail {
   name: string;
   decimals: number;
