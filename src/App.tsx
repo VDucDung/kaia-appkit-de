@@ -105,11 +105,12 @@ function App() {
 
   const handleConnect = async () => {
     await liff.init({ liffId: LIFF_ID });
-
+    console.log(liff.isLoggedIn);
     if (!liff.isLoggedIn()) {
-      return liff.login();
+      liff.login();
+    }else{
+      open()
     }
-    open()
   }
   return (
     <>
