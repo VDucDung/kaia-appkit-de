@@ -17,10 +17,43 @@ import liff from '@line/liff';
 function App() {
   const { open } = useAppKit();
   const { address, isConnected } = useAppKitAccount();
+  const [isLineLoggedIn, setIsLineLoggedIn] = useState(false);
   const [bal, setBal] = useState<string | null>("0");
   const { walletProvider } = useAppKitProvider("eip155");
   const { chainId } = useAppKitNetwork();
   const LIFF_ID = import.meta.env.VITE_LIFF_ID as string;
+
+  useEffect(() => {
+    const initializeLiff = async () => {
+      try {
+        await liff.init({
+          liffId: LIFF_ID
+        });
+        setIsLineLoggedIn(liff.isLoggedIn());
+      } catch (error) {
+        console.error('LIFF initialization failed:', error);
+      }
+    };
+
+    initializeLiff();
+  }, [LIFF_ID]);
+
+  const handleLineLogin = async () => {
+    try {
+      await liff.login();
+      setIsLineLoggedIn(true);
+    } catch (error) {
+      console.error('LINE login failed:', error);
+    }
+  };
+
+  const handleAuth = () => {
+    if (!isLineLoggedIn) {
+      handleLineLogin();
+    } else if (!isConnected) {
+      open();
+    }
+  };
 
   const onSignMessage = async () => {
     if (!address) {
@@ -51,9 +84,9 @@ function App() {
     const provider = new BrowserProvider(walletProvider as Eip1193Provider);
     const signer = await provider.getSigner();
 
-    const to = "0x97bbeC5dadcA85AFBe331035f3F63d7a25fC7f75"; 
+    const to = "0x97bbeC5dadcA85AFBe331035f3F63d7a25fC7f75";
 
-    const amount = "1000000000000000000"; 
+    const amount = "1000000000000000000";
     try {
       const tx = await signer?.sendTransaction({
         to,
@@ -103,24 +136,33 @@ function App() {
     isTransferring,
   } = useTokenFunctions();
 
-  const handleConnect = async () => {
-    await liff.init({ liffId: LIFF_ID });
-    console.log(liff.isLoggedIn);
-    if (!liff.isLoggedIn()) {
-      liff.login();
-    }else{
-      open()
-    }
-  }
+
   return (
     <>
       <div className="img">
         <img src="/kaia.png" className="logo" alt="" />
       </div>
       <div className="flex">
-        <button onClick={handleConnect}>
-          {isConnected ? formatAddress(address ?? "") : <>Connect Wallet</>}
+        {/* {
+          !liff.isLoggedIn() ? <button onClick={() => liff.login()}>Login with LINE</button> : (
+            <button onClick={() =>  open()}>
+            {isConnected ? formatAddress(address ?? "") : <>Connect Wallet</>}
+          </button>
+          )
+        } */}
+
+        <button
+          onClick={handleAuth}
+          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+        >
+          {!isLineLoggedIn
+            ? 'Login with LINE'
+            : !isConnected
+              ? 'Connect Wallet'
+              : formatAddress(address ?? '')
+          }
         </button>
+
         {isConnected && <button onClick={onSignMessage}>Sign Message</button>}
       </div>
       <div className="flex mt">
@@ -138,8 +180,8 @@ function App() {
                   Token Balance:{" "}
                   {tokenBalance != null
                     ? Number(
-                        ethers.formatUnits(tokenBalance.toString(), 18)
-                      ).toLocaleString()
+                      ethers.formatUnits(tokenBalance.toString(), 18)
+                    ).toLocaleString()
                     : 0}
                 </p>
                 <p>Token Name: {tokenDetail?.name}</p>
