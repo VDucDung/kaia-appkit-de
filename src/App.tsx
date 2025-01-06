@@ -21,37 +21,67 @@ function App() {
   const [bal, setBal] = useState<string | null>("0");
   const { walletProvider } = useAppKitProvider("eip155");
   const { chainId } = useAppKitNetwork();
+  const [isMobile, setIsMobile] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const LIFF_ID = import.meta.env.VITE_LIFF_ID as string;
 
   useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(liff.isInClient() || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+    };
+    checkMobile();
+  }, []);
+
+  useEffect(() => {
     const initializeLiff = async () => {
+      if (isInitialized) return;
+
       try {
         await liff.init({
-          liffId: LIFF_ID
+          liffId: LIFF_ID,
         });
-        setIsLineLoggedIn(liff.isLoggedIn());
+
+        const loggedIn = liff.isLoggedIn();
+        setIsLineLoggedIn(loggedIn);
+        setIsInitialized(true);
+
+        if (liff.isInClient() && !loggedIn) {
+          await liff.login();
+          setIsLineLoggedIn(true);
+        }
       } catch (error) {
         console.error('LIFF initialization failed:', error);
+        toast.error("Failed to initialize LIFF. Please try again.");
       }
     };
 
     initializeLiff();
-  }, [LIFF_ID]);
+  }, [LIFF_ID, isInitialized]);
 
   const handleLineLogin = async () => {
     try {
-      await liff.login();
+      if (isMobile) {
+        await liff.login({ redirectUri: window.location.href });
+      } else {
+        await liff.login();
+      }
       setIsLineLoggedIn(true);
     } catch (error) {
       console.error('LINE login failed:', error);
+      toast.error("LINE login failed. Please try again.");
     }
   };
 
-  const handleAuth = () => {
+  const handleAuth = async () => {
     if (!isLineLoggedIn) {
-      handleLineLogin();
+      await handleLineLogin();
     } else if (!isConnected) {
-      open();
+      try {
+        await open();
+      } catch (error) {
+        console.error('Wallet connection failed:', error);
+        toast.error("Failed to connect wallet. Please try again.");
+      }
     }
   };
 
@@ -143,24 +173,19 @@ function App() {
         <img src="/kaia.png" className="logo" alt="" />
       </div>
       <div className="flex">
-        {/* {
-          !liff.isLoggedIn() ? <button onClick={() => liff.login()}>Login with LINE</button> : (
-            <button onClick={() =>  open()}>
-            {isConnected ? formatAddress(address ?? "") : <>Connect Wallet</>}
-          </button>
-          )
-        } */}
-
         <button
           onClick={handleAuth}
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          disabled={!isInitialized}
+          className={`px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors ${!isInitialized ? 'opacity-50' : ''
+            }`}
         >
-          {!isLineLoggedIn
-            ? 'Login with LINE'
-            : !isConnected
-              ? 'Connect Wallet'
-              : formatAddress(address ?? '')
-          }
+          {!isInitialized
+            ? 'Initializing...'
+            : !isLineLoggedIn
+              ? 'Login with LINE'
+              : !isConnected
+                ? 'Connect Wallet'
+                : formatAddress(address ?? '')}
         </button>
 
         {isConnected && <button onClick={onSignMessage}>Sign Message</button>}
